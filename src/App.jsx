@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Camera, X, Trophy, RefreshCcw, Droplets, Check } from 'lucide-react';
 
 // --- 默认配置数据 ---
@@ -112,6 +113,10 @@ const DuckAvatar = ({ mood, onClick }) => {
 
 // --- 主应用 ---
 export default function App() {
+	// 从 URL 参数获取名字
+	const [searchParams] = useSearchParams();
+	const userName = searchParams.get('name') || '欧香香';
+
 	// 从 localStorage 初始化任务
 	const initializeTasks = () => {
 		try {
@@ -270,7 +275,7 @@ export default function App() {
 			<header className="pt-12 px-6 flex justify-between items-center z-10">
 				<div>
 					{/* 标题颜色: 深靛蓝 */}
-					<h1 className="text-xl font-bold text-indigo-950 tracking-wide">欧香香今天喝水了没</h1>
+					<h1 className="text-xl font-bold text-indigo-950 tracking-wide">{userName}今天喝水了没</h1>
 					{/* 次要信息颜色: 柔和的紫灰 */}
 					<p className="text-xs text-indigo-400 mt-1">今日已喝 {currentIntake}ml</p>
 				</div>

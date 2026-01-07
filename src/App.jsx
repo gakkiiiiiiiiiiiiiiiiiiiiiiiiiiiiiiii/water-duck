@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Camera, X, Trophy, RefreshCcw, Droplets, Check } from 'lucide-react';
 
 // --- 默认配置数据 ---
@@ -112,35 +112,48 @@ const DuckAvatar = ({ mood, onClick }) => {
 
 // --- 主应用 ---
 export default function App() {
-	const [tasks, setTasks] = useState(generateDailyTasks());
+	// 从 localStorage 初始化任务
+	const initializeTasks = () => {
+		try {
+			const savedDate = localStorage.getItem('water_date');
+			const today = new Date().toDateString();
+
+			if (savedDate === today) {
+				// 同一天，加载保存的任务
+				const savedTasksStr = localStorage.getItem('water_tasks');
+				if (savedTasksStr) {
+					try {
+						const savedTasks = JSON.parse(savedTasksStr);
+						if (Array.isArray(savedTasks) && savedTasks.length > 0) {
+							return savedTasks;
+						}
+					} catch (parseError) {
+						console.error('解析保存的任务数据失败:', parseError);
+					}
+				}
+			} else {
+				// 新的一天，重置数据
+				localStorage.setItem('water_date', today);
+				const newTasks = generateDailyTasks();
+				localStorage.setItem('water_tasks', JSON.stringify(newTasks));
+				return newTasks;
+			}
+		} catch (error) {
+			console.error('初始化 localStorage 失败:', error);
+		}
+		// 如果出错或没有保存的数据，使用默认任务
+		return generateDailyTasks();
+	};
+
+	const [tasks, setTasks] = useState(initializeTasks);
 	const [currentIntake, setCurrentIntake] = useState(0);
 	const [showCamera, setShowCamera] = useState(false);
 	const [activeTaskId, setActiveTaskId] = useState(null);
 	const [showCelebration, setShowCelebration] = useState(false);
 	const [duckMood, setDuckMood] = useState('happy');
 
-	// 初始化
-	useEffect(() => {
-		const savedDate = localStorage.getItem('water_date');
-		const today = new Date().toDateString();
-
-		if (savedDate === today) {
-			const savedTasks = JSON.parse(localStorage.getItem('water_tasks'));
-			if (savedTasks) {
-				setTasks(savedTasks);
-			}
-		} else {
-			localStorage.setItem('water_date', today);
-			localStorage.setItem('water_tasks', JSON.stringify(generateDailyTasks()));
-		}
-	}, []);
-
-	useEffect(() => {
-		localStorage.setItem('water_tasks', JSON.stringify(tasks));
-		calculateStatus(tasks);
-	}, [tasks]);
-
-	const calculateStatus = (taskList) => {
+	// 计算状态函数
+	const calculateStatus = useCallback((taskList) => {
 		const total = taskList.reduce((acc, task) => (task.completed ? acc + task.amount : acc), 0);
 		setCurrentIntake(total);
 
@@ -163,7 +176,27 @@ export default function App() {
 		} else {
 			setDuckMood('happy');
 		}
-	};
+	}, []);
+
+	// 初始化时计算状态
+	useEffect(() => {
+		calculateStatus(tasks);
+	}, [calculateStatus, tasks]);
+
+	// 保存任务到 localStorage 并更新状态
+	useEffect(() => {
+		try {
+			const today = new Date().toDateString();
+			const savedDate = localStorage.getItem('water_date');
+
+			// 只保存当天的数据
+			if (savedDate === today) {
+				localStorage.setItem('water_tasks', JSON.stringify(tasks));
+			}
+		} catch (error) {
+			console.error('保存任务到 localStorage 失败:', error);
+		}
+	}, [tasks]);
 
 	const handleDuckClick = () => {
 		const nextTask = tasks.find((t) => !t.completed);

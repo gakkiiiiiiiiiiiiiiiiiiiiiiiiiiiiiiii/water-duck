@@ -117,6 +117,11 @@ export default function App() {
 	const [searchParams] = useSearchParams();
 	const userName = searchParams.get('name') || '欧香香';
 
+	// 同步更新网页标题
+	useEffect(() => {
+		document.title = `${userName}今天喝水了没`;
+	}, [userName]);
+
 	// 从 localStorage 初始化任务
 	const initializeTasks = () => {
 		try {
